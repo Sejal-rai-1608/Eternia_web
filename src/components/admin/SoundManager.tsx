@@ -48,8 +48,10 @@ export default function SoundManager() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("audio/")) {
-      toast.error("Please select an audio file");
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const isAudio = file.type.startsWith("audio/") || ["mp3", "wav", "m4a", "ogg", "flac", "aac", "mp4"].includes(ext);
+    if (!isAudio) {
+      toast.error("Please select an audio file (mp3, wav, m4a, ogg, etc.)");
       return;
     }
 
@@ -178,7 +180,7 @@ export default function SoundManager() {
 
           {/* Upload Audio */}
           <div className="space-y-1.5">
-            <input ref={fileInputRef} type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
+            <input ref={fileInputRef} type="file" accept="audio/*, .mp3, .wav, .m4a, .ogg, .flac, .aac" className="hidden" onChange={handleFileUpload} />
             <Button
               type="button"
               variant="outline"

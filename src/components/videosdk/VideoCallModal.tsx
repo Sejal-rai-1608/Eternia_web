@@ -25,6 +25,7 @@ interface VideoCallModalProps {
   autoStart?: boolean;
   onCallJoined?: () => void;
   onEscalate?: () => void;
+  onAudioLevelChange?: (level: number) => void;
 }
 
 const VideoCallModal = ({
@@ -45,6 +46,7 @@ const VideoCallModal = ({
   autoStart = false,
   onCallJoined,
   onEscalate,
+  onAudioLevelChange,
 }: VideoCallModalProps) => {
   const [meetingId, setMeetingId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -226,6 +228,7 @@ const VideoCallModal = ({
                 autoJoin={true}
                 onJoined={onCallJoined}
                 onEscalate={onEscalate}
+                onAudioLevelChange={onAudioLevelChange}
               />
             </MeetingProvider>
           )}

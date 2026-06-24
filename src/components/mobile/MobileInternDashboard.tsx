@@ -106,6 +106,28 @@ const MobileInternDashboard = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, queryClient]);
+  
+  // Auto-activate verified intern in interview_pending state
+  useEffect(() => {
+    if (user && profile && (profile as any).is_verified && (profile as any).training_status === "interview_pending") {
+      const activate = async () => {
+        const currentProgress = (profile as any).training_progress || [];
+        const newProgress = currentProgress.includes(7) ? currentProgress : [...currentProgress, 7];
+        await supabase
+          .from("profiles")
+          .update({
+            training_status: "active",
+            training_progress: newProgress,
+          })
+          .eq("id", user.id);
+        
+        toast.success("Account activated! Your training is complete.");
+        await refreshProfile();
+        queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      };
+      activate();
+    }
+  }, [user, profile, refreshProfile, queryClient]);
 
   const submitEscalation = useMutation({
     mutationFn: async () => {

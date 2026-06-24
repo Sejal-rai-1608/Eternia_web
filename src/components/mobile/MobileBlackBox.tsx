@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBlackBoxSession } from "@/hooks/useBlackBoxSession";
 import { useAuth } from "@/contexts/AuthContext";
-import { useVoiceLevel } from "@/hooks/useVoiceLevel";
 import NovaOrb from "@/components/blackbox/NovaOrb";
 
 const MeetingProvider = lazy(() => import("@videosdk.live/react-sdk").then(m => ({ default: m.MeetingProvider })));
@@ -29,6 +28,7 @@ const MobileBlackBox = () => {
   const [micOn, setMicOn] = useState(true);
   const [entryPhase, setEntryPhase] = useState<"blank" | "greeting" | "ready">("blank");
   const [sessionMsgIdx, setSessionMsgIdx] = useState(0);
+  const [audioLevel, setAudioLevel] = useState(0);
 
   const handleToggleMicReady = useCallback((fn: () => void) => { setToggleMicFn(() => fn); }, []);
   const handleMicStatusChange = useCallback((on: boolean) => { setMicOn(on); }, []);
@@ -40,7 +40,7 @@ const MobileBlackBox = () => {
   const isFailed = callState === "failed";
   const isJoined = callState === "joined" && !!token && !!activeSession?.room_id;
 
-  const audioLevel = useVoiceLevel(isJoined);
+
 
   useEffect(() => {
     if (!isIdle) { setEntryPhase("ready"); return; }
@@ -139,7 +139,8 @@ const MobileBlackBox = () => {
               token={token} joinWithoutUserInteraction={false}>
               <MeetingView meetingId={activeSession.room_id} onMeetingLeave={endSession} audioOnly sessionId={activeSession.id}
                 enableMonitoring={false} autoJoin onJoined={onCallJoined} onJoinError={onCallError}
-                hideControls onToggleMicReady={handleToggleMicReady} onMicStatusChange={handleMicStatusChange} />
+                hideControls onToggleMicReady={handleToggleMicReady} onMicStatusChange={handleMicStatusChange}
+                onAudioLevelChange={setAudioLevel} />
             </MeetingProvider>
           </div>
         </Suspense>

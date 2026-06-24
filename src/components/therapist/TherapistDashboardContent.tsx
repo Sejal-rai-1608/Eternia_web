@@ -91,10 +91,14 @@ const TherapistDashboardContent = ({ isMobile }: { isMobile?: boolean }) => {
     if (data) {
       // Fetch student usernames
       const studentIds = data.map((d: any) => d.student_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .in("id", studentIds.length > 0 ? studentIds : ["none"]);
+      let profiles: any[] = [];
+      if (studentIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, username")
+          .in("id", studentIds);
+        profiles = profilesData || [];
+      }
 
       const profileMap = new Map((profiles || []).map((p) => [p.id, p.username]));
       setQueue(

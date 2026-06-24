@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useMeeting } from "@videosdk.live/react-sdk";
+import { useMeeting, useParticipant } from "@videosdk.live/react-sdk";
 import { Loader2, Shield, AlertTriangle, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ interface MeetingViewProps {
   onToggleMicReady?: (toggleFn: () => void) => void;
   onMicStatusChange?: (micOn: boolean) => void;
   onEscalate?: () => void;
+  onAudioLevelChange?: (level: number) => void;
 }
 
 const riskColors: Record<number, string> = {
@@ -48,6 +49,68 @@ const riskLabels: Record<number, string> = {
   2: "L2 — Moderate",
   3: "L3 — Critical",
 };
+
+function useParticipantAudioLevel(participantId: string | undefined, enabled: boolean) {
+  const [level, setLevel] = useState(0);
+  const { micStream, micOn } = useParticipant(participantId || "");
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!enabled || !participantId || !micOn || !micStream?.track) {
+      setLevel(0);
+      return;
+    }
+
+    let cancelled = false;
+    const track = micStream.track;
+
+    const start = () => {
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioCtxRef.current = audioCtx;
+        
+        const mediaStream = new MediaStream([track]);
+        const source = audioCtx.createMediaStreamSource(mediaStream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const tick = () => {
+          if (cancelled || !analyserRef.current) return;
+          analyserRef.current.getByteFrequencyData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) sum += data[i];
+          const avg = sum / data.length / 255;
+          setLevel(avg);
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      } catch (err) {
+        console.error("Error analyzing participant audio stream", err);
+      }
+    };
+
+    start();
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafRef.current);
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(() => {});
+        audioCtxRef.current = null;
+      }
+      analyserRef.current = null;
+      setLevel(0);
+    };
+  }, [participantId, micStream, micOn, enabled]);
+
+  return level;
+}
 
 const MeetingView = ({
   meetingId,
@@ -70,6 +133,7 @@ const MeetingView = ({
   onToggleMicReady,
   onMicStatusChange,
   onEscalate,
+  onAudioLevelChange,
 }: MeetingViewProps) => {
   const [joined, setJoined] = useState<string | null>(null);
   const joinedRef = useRef<string | null>(null);
@@ -80,6 +144,24 @@ const MeetingView = ({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const joinSucceeded = useRef(false);
   const unmountedRef = useRef(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
+
+  // Force periodic updates for the first 10 seconds of call to ensure
+  // async displayNames resolve and collapse duplicate screen tiles immediately.
+  useEffect(() => {
+    if (joined === "JOINED") {
+      const interval = setInterval(() => {
+        setForceUpdate((prev) => prev + 1);
+      }, 1000);
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+      }, 10000);
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [joined]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -260,13 +342,38 @@ const MeetingView = ({
     }
   }, [sessionId, onSilenceAutoEnd, onMeetingLeave]);
 
+  // Find student participant (the participant who is NOT the local therapist)
+  const studentParticipant = [...participants.values()].find(
+    (p) => p.id !== localParticipant?.id
+  );
+
+  // Monitor student's audio level (remote participant)
+  const studentAudioLevel = useParticipantAudioLevel(
+    studentParticipant?.id,
+    isTherapistView && joined === "JOINED"
+  );
+
   const silenceDetection = useSilenceDetection({
     enabled: isTherapistView && joined === "JOINED",
+    audioLevel: studentAudioLevel,
     warningThresholdSec: 120,
     autoEndThresholdSec: 300,
     onWarning: () => toast.warning("Student has been silent for 2+ minutes"),
     onAutoEnd: handleSilenceAutoEnd,
   });
+
+  // Monitor local participant's audio level (for student voice animations)
+  const localAudioLevel = useParticipantAudioLevel(
+    localParticipant?.id,
+    joined === "JOINED"
+  );
+
+  // Propagate local audio level changes up to parent page
+  useEffect(() => {
+    if (onAudioLevelChange && joined === "JOINED") {
+      onAudioLevelChange(localAudioLevel);
+    }
+  }, [localAudioLevel, onAudioLevelChange, joined]);
 
   // Handle escalation from AI suggestion popup
   const handleEscalateFromSuggestion = useCallback(() => {

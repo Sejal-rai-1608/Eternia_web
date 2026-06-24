@@ -9,7 +9,6 @@ const LazyMeetingView = lazy(() => import("@/components/videosdk/MeetingView"));
 import { useBlackBoxSession } from "@/hooks/useBlackBoxSession";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useVoiceLevel } from "@/hooks/useVoiceLevel";
 import MobileBlackBox from "@/components/mobile/MobileBlackBox";
 
 const SESSION_MESSAGES = [
@@ -32,6 +31,7 @@ const BlackBox = () => {
   const [micOn, setMicOn] = useState(true);
   const [entryPhase, setEntryPhase] = useState<"blank" | "greeting" | "ready">("blank");
   const [sessionMsgIdx, setSessionMsgIdx] = useState(0);
+  const [audioLevel, setAudioLevel] = useState(0);
 
   const handleToggleMicReady = useCallback((fn: () => void) => { setToggleMicFn(() => fn); }, []);
   const handleMicStatusChange = useCallback((on: boolean) => { setMicOn(on); }, []);
@@ -43,7 +43,7 @@ const BlackBox = () => {
   const isFailed = callState === "failed";
   const isJoined = callState === "joined" && !!token && !!activeSession?.room_id;
 
-  const audioLevel = useVoiceLevel(isJoined);
+
 
   // Entry sequence
   useEffect(() => {
@@ -190,6 +190,7 @@ const BlackBox = () => {
                 meetingId={activeSession.room_id} onMeetingLeave={endSession} audioOnly sessionId={activeSession.id}
                 enableMonitoring={false} autoJoin onJoined={onCallJoined} onJoinError={onCallError}
                 hideControls onToggleMicReady={handleToggleMicReady} onMicStatusChange={handleMicStatusChange}
+                onAudioLevelChange={setAudioLevel}
               />
             </LazyMeetingProvider>
           </Suspense>

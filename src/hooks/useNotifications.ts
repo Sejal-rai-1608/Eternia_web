@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 
 export interface Notification {
   id: string;
@@ -17,6 +17,7 @@ export interface Notification {
 export function useNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const subscriptionId = useRef(Math.random().toString(36).substring(2, 9));
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications", user?.id],
@@ -59,7 +60,7 @@ export function useNotifications() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`notifications-${user.id}`)
+      .channel(`notifications-${user.id}-${subscriptionId.current}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
