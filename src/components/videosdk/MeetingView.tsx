@@ -52,7 +52,9 @@ const riskLabels: Record<number, string> = {
 
 function useParticipantAudioLevel(participantId: string | undefined, enabled: boolean) {
   const [level, setLevel] = useState(0);
-  const { micStream, micOn } = useParticipant(participantId || "");
+  const participant = useParticipant(participantId || "");
+  const micStream = participant?.micStream;
+  const micOn = participant?.micOn;
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const rafRef = useRef<number>(0);
