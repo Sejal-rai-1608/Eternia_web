@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useParticipant, VideoPlayer } from "@videosdk.live/react-sdk";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 
