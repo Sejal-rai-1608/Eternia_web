@@ -232,10 +232,10 @@ export const useBlackBoxSession = () => {
         return;
       }
 
-      // Check daily limit (3/day)
+      // Check daily limit (6/day)
       const { data: dailyCount } = await supabase.rpc("get_blackbox_daily_count", { _user_id: user.id });
-      if ((dailyCount || 0) >= 3) {
-        toast.error("Daily BlackBox limit reached (3 sessions/day)");
+      if ((dailyCount || 0) >= 6) {
+        toast.error("Daily BlackBox limit reached (6 sessions/day)");
         return;
       }
 

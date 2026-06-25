@@ -6,6 +6,7 @@ import { createVideoSDKRoom, getVideoSDKToken } from "@/lib/videosdk";
 import { supabase } from "@/integrations/supabase/client";
 import MeetingView from "./MeetingView";
 import { toast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface VideoCallModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ const VideoCallModal = ({
   onEscalate,
   onAudioLevelChange,
 }: VideoCallModalProps) => {
+  const queryClient = useQueryClient();
   const [meetingId, setMeetingId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -133,12 +135,25 @@ const VideoCallModal = ({
     }
   }, [isOpen, autoStart]); // intentionally minimal deps
 
-  const handleLeave = useCallback(() => {
+  const handleLeave = useCallback(async () => {
+    if (appointmentId && meetingId) {
+      try {
+        await supabase
+          .from("appointments")
+          .update({ status: "completed" } as any)
+          .eq("id", appointmentId);
+        queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["expert-appointments"] });
+      } catch (err) {
+        console.error("Failed to mark appointment as completed:", err);
+      }
+    }
+
     setMeetingId(null);
     setToken(null);
     startInFlightRef.current = false;
     onClose();
-  }, [onClose]);
+  }, [appointmentId, meetingId, onClose, queryClient]);
 
   if (!isOpen) return null;
 

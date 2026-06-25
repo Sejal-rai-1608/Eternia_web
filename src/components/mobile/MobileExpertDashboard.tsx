@@ -93,8 +93,21 @@ const MobileExpertDashboard = () => {
   });
 
   const deleteSlot = useMutation({
-    mutationFn: async (slotId: string) => { const { error } = await supabase.from("expert_availability").delete().eq("id", slotId); if (error) throw error; },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["expert-slots"] }); toast.success("Slot removed"); },
+    mutationFn: async (slotId: string) => {
+      // Set slot_id = null on any appointments referencing this slot first,
+      // avoiding database foreign key constraint violations during deletion.
+      await supabase.from("appointments").update({ slot_id: null } as any).eq("slot_id", slotId);
+      const { error } = await supabase.from("expert_availability").delete().eq("id", slotId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expert-slots"] });
+      toast.success("Slot removed");
+    },
+    onError: (error: any) => {
+      console.error("Failed to delete slot:", error);
+      toast.error(error.message || "Failed to remove slot");
+    },
   });
 
   const completeSession = useMutation({

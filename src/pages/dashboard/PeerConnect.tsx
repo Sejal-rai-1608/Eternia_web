@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePeerConnect } from "@/hooks/usePeerConnect";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { format, isToday, isYesterday } from "date-fns";
+import { toast } from "sonner";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -137,7 +138,10 @@ const PeerConnect = () => {
   }, [handleSendMessage]);
 
   const handleStartSession = useCallback((internId: string) => {
-    if (creditBalance < 18) return;
+    if (creditBalance < 18) {
+      toast.error("Insufficient credits. 18 ECC required to connect with a peer.");
+      return;
+    }
     requestSession(internId);
     setShowNewChat(false);
   }, [creditBalance, requestSession]);

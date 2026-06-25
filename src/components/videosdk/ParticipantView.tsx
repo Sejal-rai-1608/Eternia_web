@@ -71,22 +71,22 @@ const ParticipantView = ({ participantId, audioOnly = false }: ParticipantViewPr
       )}
 
       {/* Overlay info */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-background/80 to-transparent">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-foreground">
+      <div className={`absolute bottom-0 left-0 right-0 ${isLocal ? 'p-1.5 bg-black/45' : 'p-3 bg-gradient-to-t from-background/80 to-transparent'}`}>
+        <div className="flex items-center justify-between gap-1">
+          <span className={`font-medium text-foreground truncate ${isLocal ? 'text-[10px] max-w-[65%]' : 'text-sm'}`}>
             {displayName || "Participant"} {isLocal && "(You)"}
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 shrink-0">
             {micOn ? (
-              <Mic className="w-4 h-4 text-primary" />
+              <Mic className={`${isLocal ? 'w-3 h-3' : 'w-4 h-4'} text-primary`} />
             ) : (
-              <MicOff className="w-4 h-4 text-destructive" />
+              <MicOff className={`${isLocal ? 'w-3 h-3' : 'w-4 h-4'} text-destructive`} />
             )}
             {!audioOnly && (
               webcamOn ? (
-                <Video className="w-4 h-4 text-primary" />
+                <Video className={`${isLocal ? 'w-3 h-3' : 'w-4 h-4'} text-primary`} />
               ) : (
-                <VideoOff className="w-4 h-4 text-destructive" />
+                <VideoOff className={`${isLocal ? 'w-3 h-3' : 'w-4 h-4'} text-destructive`} />
               )
             )}
           </div>

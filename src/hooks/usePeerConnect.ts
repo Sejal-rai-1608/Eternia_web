@@ -70,10 +70,12 @@ export function usePeerConnect(initialSessionId?: string | null) {
   const { data: activeSessions = [] } = useQuery({
     queryKey: ["active-peer-sessions"],
     queryFn: async () => {
+      const TWO_HOURS_AGO = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("peer_sessions")
         .select("intern_id")
-        .in("status", ["active", "pending"]);
+        .in("status", ["active", "pending"])
+        .gte("created_at", TWO_HOURS_AGO);
       if (error) throw error;
       return data;
     },

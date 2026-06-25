@@ -139,7 +139,7 @@ export function useAppointments() {
       // Fetch appointment to check credits and status
       const { data: appt, error: fetchErr } = await supabase
         .from("appointments")
-        .select("id, credits_charged, status")
+        .select("id, slot_id, credits_charged, status")
         .eq("id", appointmentId)
         .eq("student_id", user.id)
         .single();
@@ -151,6 +151,14 @@ export function useAppointments() {
         .eq("id", appointmentId)
         .eq("student_id", user.id);
       if (error) throw error;
+
+      // Free the slot in expert_availability so it can be re-booked or deleted
+      if (appt?.slot_id) {
+        await supabase
+          .from("expert_availability")
+          .update({ is_booked: false })
+          .eq("id", appt.slot_id);
+      }
 
       // Refund only if ECC was actually deducted (check for spend transaction)
       if (appt.credits_charged > 0 && (appt.status === "pending" || appt.status === "confirmed")) {

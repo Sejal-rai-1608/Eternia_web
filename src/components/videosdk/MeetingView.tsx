@@ -147,6 +147,16 @@ const MeetingView = ({
   const joinSucceeded = useRef(false);
   const unmountedRef = useRef(false);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [isPhoneScreen, setIsPhoneScreen] = useState(false);
+
+  useEffect(() => {
+    const checkScreen = () => {
+      setIsPhoneScreen(window.innerWidth < 768);
+    };
+    checkScreen();
+    window.addEventListener("resize", checkScreen);
+    return () => window.removeEventListener("resize", checkScreen);
+  }, []);
 
   // Force periodic updates for the first 10 seconds of call to ensure
   // async displayNames resolve and collapse duplicate screen tiles immediately.
@@ -491,6 +501,24 @@ const MeetingView = ({
             seenNames.add(key);
             participantIds.push(id);
           }
+          const localId = localParticipant?.id;
+          const remoteId = participantIds.find(id => id !== localId);
+
+          if (!audioOnly && participantIds.length === 2 && localId && remoteId && isPhoneScreen) {
+            return (
+              <div className="relative w-full h-full min-h-[400px]">
+                {/* Remote participant is large / background */}
+                <div className="w-full h-full [&>div]:h-full [&>div]:w-full">
+                  <ParticipantView participantId={remoteId} audioOnly={false} />
+                </div>
+                {/* Local participant is small / floating thumbnail in bottom-left corner */}
+                <div className="absolute bottom-4 left-4 w-28 aspect-[3/4] z-20 rounded-xl overflow-hidden border-2 border-primary/40 shadow-2xl [&>div]:h-full [&>div]:w-full bg-background">
+                  <ParticipantView participantId={localId} audioOnly={false} />
+                </div>
+              </div>
+            );
+          }
+
           return (
             <div className={`grid gap-4 h-full ${
               participantIds.length <= 1 ? "grid-cols-1" : participantIds.length <= 4 ? "grid-cols-2" : "grid-cols-3"

@@ -173,12 +173,20 @@ const ExpertDashboardContent = () => {
 
   const deleteSlot = useMutation({
     mutationFn: async (slotId: string) => {
+      // Set slot_id = null on any appointments referencing this slot first,
+      // avoiding database foreign key constraint violations during deletion.
+      await supabase.from("appointments").update({ slot_id: null } as any).eq("slot_id", slotId);
+      
       const { error } = await supabase.from("expert_availability").delete().eq("id", slotId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expert-slots"] });
       toast.success("Slot removed");
+    },
+    onError: (error: any) => {
+      console.error("Failed to delete slot:", error);
+      toast.error(error.message || "Failed to remove slot");
     },
   });
 
@@ -202,12 +210,31 @@ const ExpertDashboardContent = () => {
 
   const updateAppointmentStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      // If status is updated to cancelled, free the slot in expert_availability
+      if (status === "cancelled") {
+        const { data: appt } = await supabase
+          .from("appointments")
+          .select("slot_id")
+          .eq("id", id)
+          .single();
+        if (appt?.slot_id) {
+          await supabase
+            .from("expert_availability")
+            .update({ is_booked: false })
+            .eq("id", appt.slot_id);
+        }
+      }
+
       const { error } = await supabase.from("appointments").update({ status: status as any }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expert-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["expert-slots"] });
       toast.success("Appointment updated");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update appointment");
     },
   });
 

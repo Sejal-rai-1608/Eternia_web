@@ -113,7 +113,10 @@ const MobilePeerConnect = () => {
   }, [message, activeSessionId, sendMessage]);
 
   const handleStartSession = useCallback((internId: string) => {
-    if (creditBalance < 18) return;
+    if (creditBalance < 18) {
+      toast.error("Insufficient credits. 18 ECC required to connect with a peer.");
+      return;
+    }
     requestSession(internId);
     setMobileView("chat");
   }, [creditBalance, requestSession]);
