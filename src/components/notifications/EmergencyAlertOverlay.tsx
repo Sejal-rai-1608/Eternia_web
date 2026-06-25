@@ -79,8 +79,9 @@ const EmergencyAlertOverlay = ({ onViewFlags }: EmergencyAlertOverlayProps) => {
   useEffect(() => {
     if (!user) return;
 
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel("emergency-alerts-overlay")
+      .channel(`emergency-alerts-overlay-${suffix}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "escalation_requests" },

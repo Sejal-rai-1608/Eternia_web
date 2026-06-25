@@ -59,8 +59,9 @@ const ExpertL3AlertPanel = () => {
 
     fetchL3();
 
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel("expert-l3-alerts")
+      .channel(`expert-l3-alerts-${suffix}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "blackbox_sessions" },

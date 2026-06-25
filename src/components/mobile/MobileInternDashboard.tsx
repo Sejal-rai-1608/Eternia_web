@@ -93,8 +93,9 @@ const MobileInternDashboard = () => {
   // Realtime subscription for new/updated peer sessions
   useEffect(() => {
     if (!user) return;
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel(`intern-peer-sessions-mobile-${user.id}`)
+      .channel(`intern-peer-sessions-mobile-${user.id}-${suffix}`)
       .on("postgres_changes", {
         event: "*",
         schema: "public",

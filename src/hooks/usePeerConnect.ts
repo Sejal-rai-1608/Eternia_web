@@ -140,8 +140,9 @@ export function usePeerConnect(initialSessionId?: string | null) {
   useEffect(() => {
     if (!user) return;
     const filterCol = isIntern ? "intern_id" : "student_id";
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel(`peer-session-status-${user.id}`)
+      .channel(`peer-session-status-${user.id}-${suffix}`)
       .on(
         "postgres_changes",
         {
@@ -176,8 +177,9 @@ export function usePeerConnect(initialSessionId?: string | null) {
   useEffect(() => {
     if (!user) return;
 
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel(`peer-call-notifications-${user.id}`)
+      .channel(`peer-call-notifications-${user.id}-${suffix}`)
       .on(
         "postgres_changes",
         {
@@ -297,8 +299,9 @@ export function usePeerConnect(initialSessionId?: string | null) {
     };
     load();
 
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel(`peer-messages-${activeSessionId}`)
+      .channel(`peer-messages-${activeSessionId}-${suffix}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "peer_messages", filter: `session_id=eq.${activeSessionId}` },
         (payload) => {
           const newMsg = payload.new as PeerMessage;

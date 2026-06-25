@@ -114,8 +114,9 @@ const TherapistDashboardContent = ({ isMobile }: { isMobile?: boolean }) => {
   // Realtime queue subscription
   useEffect(() => {
     fetchQueue();
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel("therapist-queue")
+      .channel(`therapist-queue-${suffix}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "blackbox_sessions" }, () => {
         fetchQueue();
       })
@@ -126,8 +127,9 @@ const TherapistDashboardContent = ({ isMobile }: { isMobile?: boolean }) => {
   // Realtime listener: detect when an expert joins our active escalated session
   useEffect(() => {
     if (!user || !activeSession) return;
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel("therapist-expert-join")
+      .channel(`therapist-expert-join-${suffix}`)
       .on(
         "postgres_changes",
         {

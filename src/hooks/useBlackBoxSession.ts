@@ -138,8 +138,9 @@ export const useBlackBoxSession = () => {
   // Subscribe to realtime changes
   useEffect(() => {
     if (!activeSession?.id) return;
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel(`blackbox-session-${activeSession.id}`)
+      .channel(`blackbox-session-${activeSession.id}-${suffix}`)
       .on("postgres_changes", {
         event: "UPDATE", schema: "public", table: "blackbox_sessions",
         filter: `id=eq.${activeSession.id}`,

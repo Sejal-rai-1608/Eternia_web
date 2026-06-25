@@ -505,6 +505,7 @@ const MobilePeerConnect = () => {
             isOpen={!!callMode}
             onClose={() => setCallMode(null)}
             participantName={profile?.username || "Anonymous"}
+            participantId={profile?.id || user?.id}
             mode={callMode}
             existingRoomId={activeSession?.room_id || undefined}
             sessionId={activeSessionId}

@@ -132,8 +132,9 @@ const SPOCDashboardContent = () => {
   // Real-time escalation notifications
   const [newEscalationCount, setNewEscalationCount] = useState(0);
   useEffect(() => {
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel("spoc-escalation-realtime")
+      .channel(`spoc-escalation-realtime-${suffix}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "escalation_requests" },
@@ -205,8 +206,9 @@ const SPOCDashboardContent = () => {
 
   // Realtime refresh for reports
   useEffect(() => {
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel("spoc-reports-realtime")
+      .channel(`spoc-reports-realtime-${suffix}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "appointments" }, () => {
         queryClient.invalidateQueries({ queryKey: ["spoc-reports"] });
       })

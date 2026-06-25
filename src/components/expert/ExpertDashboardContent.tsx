@@ -116,9 +116,9 @@ const ExpertDashboardContent = () => {
 
   // Realtime listener for L3 handoff notifications
   useEffect(() => {
-    if (!user) return;
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel(`expert-l3-notifications-${user.id}`)
+      .channel(`expert-l3-notifications-${user.id}-${suffix}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },

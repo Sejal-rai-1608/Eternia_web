@@ -98,8 +98,9 @@ export function useAnalyticsData(dateRange: DateRange = "30d") {
   // Realtime subscription
   useEffect(() => {
     if (!isAdmin) return;
+    const suffix = Math.random().toString(36).substring(7);
     const channel = supabase
-      .channel("analytics-realtime")
+      .channel(`analytics-realtime-${suffix}`)
       .on(
         "postgres_changes" as any,
         { event: "INSERT", schema: "public", table: "analytics_events" },
