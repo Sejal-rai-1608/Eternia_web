@@ -5,14 +5,57 @@ import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 interface ParticipantViewProps {
   participantId: string;
   audioOnly?: boolean;
+  speakerDeviceId?: string;
+  volumeBoost?: number;
 }
 
-const ParticipantView = ({ participantId, audioOnly = false }: ParticipantViewProps) => {
+const ParticipantView = ({
+  participantId,
+  audioOnly = false,
+  speakerDeviceId,
+  volumeBoost = 1.0,
+}: ParticipantViewProps) => {
   const micRef = useRef<HTMLAudioElement>(null);
   const { micStream, webcamOn, micOn, isLocal, displayName } =
     useParticipant(participantId);
 
   const attachedTrackIdRef = useRef<string | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const destinationNodeRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+
+  const cleanupAudioNodes = useCallback(() => {
+    if (sourceNodeRef.current) {
+      try { sourceNodeRef.current.disconnect(); } catch (e) {}
+      sourceNodeRef.current = null;
+    }
+    if (gainNodeRef.current) {
+      try { gainNodeRef.current.disconnect(); } catch (e) {}
+      gainNodeRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    destinationNodeRef.current = null;
+  }, []);
+
+  // Update output speaker device using setSinkId
+  useEffect(() => {
+    const el = micRef.current;
+    if (!el || isLocal) return;
+
+    if (speakerDeviceId && typeof (el as any).setSinkId === "function") {
+      (el as any).setSinkId(speakerDeviceId)
+        .then(() => {
+          console.log(`[AudioRouting] Routed participant ${participantId} audio to device ${speakerDeviceId}`);
+        })
+        .catch((err: any) => {
+          console.error(`[AudioRouting] Failed to setSinkId to ${speakerDeviceId}:`, err);
+        });
+    }
+  }, [speakerDeviceId, isLocal, participantId]);
 
   useEffect(() => {
     const el = micRef.current;
@@ -23,25 +66,79 @@ const ParticipantView = ({ participantId, audioOnly = false }: ParticipantViewPr
     if (isLocal) {
       el.srcObject = null;
       attachedTrackIdRef.current = null;
+      cleanupAudioNodes();
       return;
     }
 
     if (micOn && micStream?.track) {
       const trackId = micStream.track.id;
-      // Avoid tearing down and re-attaching the same track on every render —
-      // that causes audio glitches / crackling during long calls.
-      if (attachedTrackIdRef.current === trackId && el.srcObject) return;
+      // Avoid tearing down and re-attaching the same track on every render
+      if (
+        attachedTrackIdRef.current === trackId &&
+        el.srcObject &&
+        gainNodeRef.current &&
+        gainNodeRef.current.gain.value === volumeBoost
+      ) {
+        return;
+      }
+
+      cleanupAudioNodes();
 
       const mediaStream = new MediaStream();
       mediaStream.addTrack(micStream.track);
-      el.srcObject = mediaStream;
+
+      if (volumeBoost > 1.0) {
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          const audioCtx = new AudioContextClass();
+          audioContextRef.current = audioCtx;
+
+          const source = audioCtx.createMediaStreamSource(mediaStream);
+          sourceNodeRef.current = source;
+
+          const gainNode = audioCtx.createGain();
+          gainNode.gain.value = volumeBoost;
+          gainNodeRef.current = gainNode;
+
+          const destination = audioCtx.createMediaStreamDestination();
+          destinationNodeRef.current = destination;
+
+          source.connect(gainNode);
+          gainNode.connect(destination);
+
+          el.srcObject = destination.stream;
+          console.log(`[AudioRouting] Applied volume boost (${volumeBoost}x) to remote stream`);
+        } catch (err) {
+          console.error("[AudioRouting] Web Audio boost failed, falling back to raw stream:", err);
+          el.srcObject = mediaStream;
+        }
+      } else {
+        el.srcObject = mediaStream;
+      }
+
       attachedTrackIdRef.current = trackId;
+
+      // Apply output device if set
+      if (speakerDeviceId && typeof (el as any).setSinkId === "function") {
+        (el as any).setSinkId(speakerDeviceId).catch((err: any) => {
+          console.error("[AudioRouting] Failed to set sinkId on start:", err);
+        });
+      }
+
       el.play().catch((error) => console.error("Audio play failed", error));
     } else {
       el.srcObject = null;
       attachedTrackIdRef.current = null;
+      cleanupAudioNodes();
     }
-  }, [micStream, micOn, isLocal]);
+  }, [micStream, micOn, isLocal, volumeBoost, speakerDeviceId, cleanupAudioNodes]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupAudioNodes();
+    };
+  }, [cleanupAudioNodes]);
 
   const showVideo = !audioOnly && webcamOn;
 

@@ -149,6 +149,10 @@ const MeetingView = ({
   const [forceUpdate, setForceUpdate] = useState(0);
   const [isPhoneScreen, setIsPhoneScreen] = useState(false);
 
+  const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
+  const [selectedSpeaker, setSelectedSpeaker] = useState<string>("");
+  const [volumeBoost, setVolumeBoost] = useState<number>(1.0);
+
   useEffect(() => {
     const checkScreen = () => {
       setIsPhoneScreen(window.innerWidth < 768);
@@ -184,7 +188,7 @@ const MeetingView = ({
     };
   }, []);
 
-  const { join, leave, participants, localParticipant, toggleMic, localMicOn } = useMeeting({
+  const { join, leave, participants, localParticipant, toggleMic, localMicOn, getWebcams, changeWebcam } = useMeeting({
     onMeetingJoined: () => {
       if (unmountedRef.current) return;
       console.log("[MeetingView] onMeetingJoined fired");
@@ -314,6 +318,63 @@ const MeetingView = ({
       return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
     }
   }, [joined, onJoinError]);
+
+  // Enumerate output devices and switch camera handlers
+  const refreshAudioOutputs = useCallback(async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const outputs = devices.filter((d) => d.kind === "audiooutput");
+      setAudioOutputs(outputs);
+
+      if (outputs.length > 0 && !selectedSpeaker) {
+        const defaultSpeaker = outputs.find(
+          (d) => d.label.toLowerCase().includes("speaker") || d.label.toLowerCase().includes("loudspeaker")
+        ) || outputs[0];
+        setSelectedSpeaker(defaultSpeaker.deviceId);
+      }
+    } catch (err) {
+      console.error("Failed to enumerate audio output devices:", err);
+    }
+  }, [selectedSpeaker]);
+
+  useEffect(() => {
+    refreshAudioOutputs();
+    if (navigator.mediaDevices) {
+      navigator.mediaDevices.addEventListener("devicechange", refreshAudioOutputs);
+      return () => navigator.mediaDevices.removeEventListener("devicechange", refreshAudioOutputs);
+    }
+  }, [refreshAudioOutputs]);
+
+  const handleSwitchCamera = useCallback(async () => {
+    try {
+      const webcams = await getWebcams();
+      if (!webcams || webcams.length <= 1) {
+        toast.info("Only one camera available or no cameras found.");
+        return;
+      }
+
+      const activeDeviceId = localParticipant?.webcamStream?.track?.getSettings()?.deviceId;
+      
+      let nextDevice = webcams[0];
+      if (activeDeviceId) {
+        const currentIndex = webcams.findIndex((c) => c.deviceId === activeDeviceId);
+        if (currentIndex !== -1) {
+          const nextIndex = (currentIndex + 1) % webcams.length;
+          nextDevice = webcams[nextIndex];
+        }
+      } else {
+        const backCam = webcams.find((c) => c.facingMode === "environment");
+        nextDevice = backCam || webcams[1] || webcams[0];
+      }
+
+      changeWebcam(nextDevice.deviceId);
+      toast.success(`Switched camera to ${nextDevice.label || "next camera"}`);
+    } catch (err) {
+      console.error("Failed to switch camera:", err);
+      toast.error("Failed to switch camera");
+    }
+  }, [getWebcams, changeWebcam, localParticipant]);
 
   // AI audio monitoring
   const audioMonitor = useAudioMonitor({
@@ -509,11 +570,21 @@ const MeetingView = ({
               <div className="relative w-full h-full min-h-[400px]">
                 {/* Remote participant is large / background */}
                 <div className="w-full h-full [&>div]:h-full [&>div]:w-full">
-                  <ParticipantView participantId={remoteId} audioOnly={false} />
+                  <ParticipantView
+                    participantId={remoteId}
+                    audioOnly={false}
+                    speakerDeviceId={selectedSpeaker}
+                    volumeBoost={volumeBoost}
+                  />
                 </div>
                 {/* Local participant is small / floating thumbnail in bottom-left corner */}
                 <div className="absolute bottom-4 left-4 w-28 aspect-[3/4] z-20 rounded-xl overflow-hidden border-2 border-primary/40 shadow-2xl [&>div]:h-full [&>div]:w-full bg-background">
-                  <ParticipantView participantId={localId} audioOnly={false} />
+                  <ParticipantView
+                    participantId={localId}
+                    audioOnly={false}
+                    speakerDeviceId={selectedSpeaker}
+                    volumeBoost={volumeBoost}
+                  />
                 </div>
               </div>
             );
@@ -524,13 +595,30 @@ const MeetingView = ({
               participantIds.length <= 1 ? "grid-cols-1" : participantIds.length <= 4 ? "grid-cols-2" : "grid-cols-3"
             }`}>
               {participantIds.map((participantId) => (
-                <ParticipantView key={participantId} participantId={participantId} audioOnly={audioOnly} />
+                <ParticipantView
+                  key={participantId}
+                  participantId={participantId}
+                  audioOnly={audioOnly}
+                  speakerDeviceId={selectedSpeaker}
+                  volumeBoost={volumeBoost}
+                />
               ))}
             </div>
           );
         })()}
       </div>
-      {!hideControls && <MeetingControls audioOnly={audioOnly} onEscalate={onEscalate} />}
+      {!hideControls && (
+        <MeetingControls
+          audioOnly={audioOnly}
+          onEscalate={onEscalate}
+          onSwitchCamera={handleSwitchCamera}
+          audioOutputs={audioOutputs}
+          selectedSpeaker={selectedSpeaker}
+          onSpeakerChange={setSelectedSpeaker}
+          volumeBoost={volumeBoost}
+          onVolumeBoostChange={setVolumeBoost}
+        />
+      )}
       {isTherapistView && sessionId && (
         <TherapistSessionControls
           sessionId={sessionId}
