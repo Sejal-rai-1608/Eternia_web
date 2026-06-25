@@ -125,6 +125,15 @@ export function useAudioMonitor({
   }, [getBufferText]);
 
   const startListening = useCallback(() => {
+    // Detect mobile devices (iOS/Android). Mobile OS handles microphone capture with single ownership.
+    // Running both WebRTC call audio and Web Speech API concurrently causes mic conflicts (leading to delay)
+    // and Chrome on Android repeatedly emits keyboard/voice chime/beep sounds on start/stop.
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      console.warn("[AudioMonitor] Speech recognition disabled on mobile devices to prevent mic conflicts and beep sounds.");
+      return;
+    }
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.warn("[AudioMonitor] Web Speech API not supported in this browser");

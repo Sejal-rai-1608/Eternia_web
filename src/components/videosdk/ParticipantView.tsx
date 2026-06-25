@@ -18,6 +18,14 @@ const ParticipantView = ({ participantId, audioOnly = false }: ParticipantViewPr
     const el = micRef.current;
     if (!el) return;
 
+    // Prevent playing back local participant's own microphone track to themselves,
+    // which causes feedback loops/howling and echoing delays on mobile speakers/mics.
+    if (isLocal) {
+      el.srcObject = null;
+      attachedTrackIdRef.current = null;
+      return;
+    }
+
     if (micOn && micStream?.track) {
       const trackId = micStream.track.id;
       // Avoid tearing down and re-attaching the same track on every render —
@@ -33,7 +41,7 @@ const ParticipantView = ({ participantId, audioOnly = false }: ParticipantViewPr
       el.srcObject = null;
       attachedTrackIdRef.current = null;
     }
-  }, [micStream, micOn]);
+  }, [micStream, micOn, isLocal]);
 
   const showVideo = !audioOnly && webcamOn;
 
