@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import EmojiPicker from "@/components/chat/EmojiPicker";
 import VideoCallModal from "@/components/videosdk/VideoCallModal";
+import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { usePeerConnect } from "@/hooks/usePeerConnect";
