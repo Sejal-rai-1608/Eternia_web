@@ -877,3 +877,4 @@ For licensing inquiries: https://eliteforums.in
 <p align="center">
   <sub>© 2026 Elite Forums. All rights reserved. Built with ❤️ by Team ETERNIA.</sub>
 </p>
+
