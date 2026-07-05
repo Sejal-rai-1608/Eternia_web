@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <em>Developed by <a href="https://eliteforums.in">Elite Forums</a> under the guidance of Mr. Harsh Santosh Tambade (Founder, Elite Forums) & Team ETERNIA</em>
+  <em>Developed by <a href="#">Aurenity Innovations Private Limited</a> under the guidance of Mr. Harsh Santosh Tambade (Founder, Elite Forums) & Team ETERNIA</em>
 </p>
 
 <p align="center">
@@ -833,7 +833,7 @@ Eternia is built on the shoulders of exceptional open-source projects:
 
 ## Team
 
-**Eternia** is developed by **[Elite Forums](https://eliteforums.in)** under the guidance of **Mr. Harsh Santosh Tambade** — Founder of Elite Forums.
+**Eternia** is developed by **[Aurenity Innovations Private Limited](#)** under the guidance of **Mr. Harsh Santosh Tambade** — Founder of Elite Forums.
 
 Built with dedication by **Team ETERNIA**.
 
@@ -851,7 +851,7 @@ For business inquiries, licensing, or partnership opportunities, please visit [e
 ## License
 
 ```
-Copyright © 2026 Elite Forums (eliteforms.in). All rights reserved.
+Copyright © 2026 Aurenity Innovations Private Limited. All rights reserved.
 
 This software and its source code are proprietary and confidential.
 Unauthorized copying, modification, distribution, or use of this software,
@@ -869,12 +869,11 @@ SOFTWARE.
 Developed under the guidance of Mr. Harsh Santosh Tambade
 (Founder, Elite Forums) and Team ETERNIA.
 
-For licensing inquiries: https://eliteforums.in
 ```
 
 ---
 
 <p align="center">
-  <sub>© 2026 Elite Forums. All rights reserved. Built with ❤️ by Team ETERNIA.</sub>
+  <sub>© 2026 Aurenity Innovations Private Limited. All rights reserved. Built with ❤️ by Team ETERNIA.</sub>
 </p>
 
